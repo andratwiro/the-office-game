@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#1C3A5E">
+<title>Dunder Mifflin Trivia</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="frame">
+  <header class="topbar">
+    <div class="wordmark">Dunder&nbsp;Mifflin<small>Branch trivia · 20:00 club</small></div>
+    <div class="rec"><span class="dot"></span> REC</div>
+  </header>
+  <main id="stage" class="stage"><!-- rendered by game.js --></main>
+</div>
+
+<!-- Firebase (compat SDK, no build step) — matches the riot project -->
+<script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-database-compat.js"></script>
+<script src="firebase-config.js"></script>
+<script src="episodes.js"></script>
+<script src="app.js"></script>
+<script src="game.js"></script>
+</body>
+</html>
