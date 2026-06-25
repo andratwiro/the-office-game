@@ -16,7 +16,7 @@ window.OG = (function () {
   const DEFAULT_TRIGGER = "20:00";  // CET, overridable from the backend page
   const TIMEZONE = "Europe/Madrid"; // CET / CEST
 
-  let db = null, storage = null, auth = null;
+  let db = null, auth = null;
   let serverOffset = 0;             // ms; server time - local time
   let ready = false;
 
@@ -31,7 +31,6 @@ window.OG = (function () {
       firebase.initializeApp(window.FIREBASE_CONFIG);
       db = firebase.database();
       auth = firebase.auth();
-      try { storage = firebase.storage(); } catch (e) { storage = null; }
       auth.signInAnonymously().catch(function (e) {
         console.warn("Anonymous sign-in failed — enable it in the Firebase console.", e);
       });
@@ -129,7 +128,7 @@ window.OG = (function () {
   return {
     PLAYERS: PLAYERS, EMOJI: EMOJI, ROOM: ROOM, DEFAULT_TRIGGER: DEFAULT_TRIGGER, TIMEZONE: TIMEZONE,
     init: init, configured: configured,
-    db: function () { return db; }, storage: function () { return storage; }, auth: function () { return auth; },
+    db: function () { return db; }, auth: function () { return auth; },
     getPlayer: getPlayer, setPlayer: setPlayer, forgetPlayer: forgetPlayer,
     getEmoji: getEmoji, setEmoji: setEmoji,
     serverNow: serverNow, zoneNow: zoneNow,

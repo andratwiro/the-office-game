@@ -99,21 +99,31 @@
     $("gifPrev").innerHTML = url ? '<div class="gif-frame" style="aspect-ratio:16/9;margin-top:10px"><img src="' + esc(url) + '" alt=""></div>' : "";
   }
   $("gifUrl").addEventListener("input", function () { pendingGifUrl = ""; showPrev($("gifUrl").value.trim()); });
+  // No Firebase Storage (that needs the paid Blaze plan). Instead we read the file
+  // straight into a base64 data URL and store that as the question's gifUrl in the
+  // Realtime Database. Cheap and free for a two-person game; cap at 2 MB so a single
+  // record stays small. game.js's <img src> already renders data: URLs.
+  var MAX_GIF_BYTES = 2 * 1024 * 1024;
   $("gifFile").addEventListener("change", function () {
     var f = $("gifFile").files[0]; if (!f) return;
-    if (!OG.storage()) {
-      $("gifMsg").textContent = "Storage isn’t enabled — paste a URL instead (see README).";
+    if (f.size > MAX_GIF_BYTES) {
+      $("gifMsg").textContent = "That file is " + (f.size / 1048576).toFixed(1) +
+        " MB — keep it under 2 MB, or paste a Giphy/Tenor URL instead.";
       $("gifFile").value = ""; return;
     }
-    $("gifMsg").textContent = "Uploading…";
-    var safe = f.name.replace(/[^\w.\-]+/g, "_");
-    var ref = OG.storage().ref().child("gifs/" + OG.serverNow() + "_" + safe);
-    var task = ref.put(f);
-    task.on("state_changed",
-      function (s) { $("gifMsg").textContent = "Uploading… " + Math.round(s.bytesTransferred / s.totalBytes * 100) + "%"; },
-      function (err) { $("gifMsg").textContent = "Upload failed: " + err.code + ". You can paste a URL instead."; },
-      function () { ref.getDownloadURL().then(function (url) { pendingGifUrl = url; $("gifUrl").value = ""; $("gifMsg").textContent = "Uploaded ✓"; showPrev(url); }); }
-    );
+    $("gifMsg").textContent = "Reading…";
+    var reader = new FileReader();
+    reader.onerror = function () {
+      $("gifMsg").textContent = "Couldn’t read that file — paste a URL instead.";
+      $("gifFile").value = "";
+    };
+    reader.onload = function () {
+      pendingGifUrl = reader.result;   // data:image/...;base64,… — stored in the DB
+      $("gifUrl").value = "";
+      $("gifMsg").textContent = "Ready ✓ (stored with the question)";
+      showPrev(pendingGifUrl);
+    };
+    reader.readAsDataURL(f);
   });
 
   function gifValue() { return pendingGifUrl || $("gifUrl").value.trim(); }

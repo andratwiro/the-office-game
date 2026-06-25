@@ -3,8 +3,9 @@
 // "Your apps" -> Web app -> SDK setup and configuration -> Config).
 //
 // The apiKey is NOT a secret for a web app — access is governed by the Realtime
-// Database / Storage security rules, not by hiding the key. See README.md for the
-// rules to paste and the one-time console toggles (Anonymous auth, Realtime DB).
+// Database security rules, not by hiding the key. See README.md for the rules to
+// paste and the one-time console toggles (Anonymous auth, Realtime DB). We do not
+// use Firebase Storage, so storageBucket below is unused (leave it or delete it).
 window.FIREBASE_CONFIG = {
   apiKey: "PASTE_API_KEY",
   authDomain: "PASTE.firebaseapp.com",
