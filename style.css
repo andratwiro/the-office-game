@@ -347,6 +347,9 @@ select:focus-visible, input:focus-visible, textarea:focus-visible, .choice:focus
 .qitem .qtext { font-family: var(--serif); font-size: 18px; margin: 6px 0 2px; }
 .qitem .meta { font-family: var(--mono); font-size: 12px; color: var(--ink-soft); }
 .qitem img { max-width: 80px; max-height: 56px; border: 1px solid var(--ink); }
+.editor-mount:empty { display: none; }
+.editor { border: 2px solid var(--navy); background: var(--paper-2); padding: 16px; box-shadow: var(--shadow); }
+.editor .field:last-of-type { margin-bottom: 10px; }
 .muted { color: var(--ink-soft); }
 .hint { font-family: var(--mono); font-size: 12px; color: var(--ink-soft); }
 .note { border: 1.5px dashed var(--rec); background: #f7e7e4; padding: 12px 14px; font-family: var(--mono); font-size: 13px; }
