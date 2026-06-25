@@ -27,9 +27,15 @@
   if (!OG.configured()) { renderConfig(); return; }
   OG.init();
   me = OG.uid();
-  if (!OG.getName()) renderPickName();
-  else if (!OG.getEmoji()) renderPickEmoji();
+  if (!OG.hasIdentity()) renderSetup();
   else join();
+
+  // Save name + emoji, then either join the room or — if already in — push the
+  // change to my presence record so the room sees my new face immediately.
+  function applyIdentity() {
+    if (joined && meRef) { meRef.update({ name: OG.getName(), emoji: OG.getEmoji() }); lastKey = ""; renderAll(); }
+    else join();
+  }
 
   function join() {
     if (joined) { lastKey = ""; renderAll(); return; }
@@ -178,9 +184,9 @@
 
   // state: idle | think | locked | correct | wrong | away
   function castHTML(id, state, tag) {
+    // names are withheld until the finale; the face (yours ringed) carries it
     return '<div class="cast ' + state + (id === me ? " me" : "") + '">' +
       '<span class="ava">' + esc(emojiOf(id)) + '</span>' +
-      '<span class="cast-name">' + esc(nameOf(id)) + '</span>' +
       (tag ? '<span class="cast-tag">' + tag + '</span>' : '') + '</div>';
   }
   function castRow(list, big, reacting, render) {
@@ -223,43 +229,42 @@
       'to share one room between phones.</p></section>';
   }
 
-  function renderPickName() {
-    stage.innerHTML =
-      '<section class="card stack"><span class="tab">Identification</span>' +
-      '<h1>Who’s reporting<br>for the documentary?</h1>' +
-      '<p class="hint">Type your name — this phone stays signed in as you.</p>' +
-      '<input id="nm" class="bigfield" type="text" placeholder="Your name" maxlength="22" ' +
-      'autocomplete="off" autocapitalize="words" enterkeyhint="go">' +
-      '<button class="btn primary block" id="go">Continue →</button></section>';
-    var input = document.getElementById("nm"), go = document.getElementById("go");
-    input.value = OG.getName();
-    input.focus();
-    function next() {
-      var n = OG.setName(input.value);
-      if (!n) { input.focus(); return; }
-      OG.getEmoji() ? join() : renderPickEmoji();
-    }
-    go.addEventListener("click", next);
-    input.addEventListener("keydown", function (e) { if (e.key === "Enter") next(); });
-  }
-
-  function renderPickEmoji() {
+  // One screen: pick a face from the grid, type a name below, join. Re-used by
+  // the "My face" quick action to edit both at once.
+  function renderSetup() {
+    var picked = OG.getEmoji();
     var grid = OG.EMOJI.map(function (e) {
-      return '<button class="ava-pick" data-e="' + esc(e) + '">' + esc(e) + '</button>';
+      return '<button class="ava-pick' + (e === picked ? " on" : "") + '" data-e="' + esc(e) + '">' + esc(e) + '</button>';
     }).join("");
     stage.innerHTML =
       '<section class="card stack"><span class="tab">Casting</span>' +
-      '<h1>Choose your face</h1>' +
-      '<p class="hint">Hi ' + esc(OG.getName()) + ' — this emoji is you all night. It’ll cheer when you’re right.</p>' +
-      '<div class="ava-grid">' + grid + '</div>' +
-      '<a class="link center" href="#" id="backName">← change my name</a></section>';
-    stage.querySelectorAll(".ava-pick").forEach(function (b) {
-      if (b.dataset.e === OG.getEmoji()) b.classList.add("on");
-      b.addEventListener("click", function () { OG.setEmoji(b.dataset.e); join(); });
+      '<h1>Pick your face</h1>' +
+      '<p class="hint">Tap an emoji — it’s you all night, and it cheers when you’re right.</p>' +
+      '<div class="ava-grid" id="grid">' + grid + '</div>' +
+      '<input id="nm" class="bigfield" type="text" placeholder="Your name" maxlength="22" ' +
+      'autocomplete="off" autocapitalize="words" enterkeyhint="go" value="' + esc(OG.getName()) + '">' +
+      '<button class="btn primary block big-tap" id="go">' + (joined ? "Save" : "Join the room") + ' →</button></section>';
+
+    var grid_ = document.getElementById("grid"), input = document.getElementById("nm"), go = document.getElementById("go");
+    grid_.querySelectorAll(".ava-pick").forEach(function (b) {
+      b.addEventListener("click", function () {
+        picked = b.dataset.e;
+        grid_.querySelectorAll(".ava-pick").forEach(function (x) { x.classList.remove("on"); });
+        b.classList.add("on");
+        grid_.classList.remove("nopick");
+      });
     });
-    document.getElementById("backName").addEventListener("click", function (ev) {
-      ev.preventDefault(); renderPickName();
-    });
+    function commit() {
+      if (!picked) { grid_.classList.add("nopick"); grid_.scrollIntoView({ block: "center" }); return; }
+      var n = OG.setName(input.value);
+      if (!n) { input.focus(); input.classList.add("nopick"); return; }
+      OG.setEmoji(picked);
+      applyIdentity();
+    }
+    go.addEventListener("click", commit);
+    input.addEventListener("input", function () { input.classList.remove("nopick"); });
+    input.addEventListener("keydown", function (e) { if (e.key === "Enter") commit(); });
+    if (!picked) { /* nudge toward picking a face first */ } else input.focus();
   }
 
   function renderLobby() {
@@ -268,12 +273,12 @@
     var here = rosterOnline();
     var n = here.length;
 
-    // each face gets a stagger index (--i) so the bob ripples across the crowd
+    // names stay hidden until the final scoreboard — the crowd is just faces,
+    // yours wearing the ring. each face gets a stagger index (--i) for the bob.
     var crowd = '<div class="crowd" data-density="' + densityFor(n) + '">' +
       here.map(function (r, i) {
         return '<div class="peep' + (r.id === me ? " me" : "") + '" style="--i:' + i + '">' +
-          '<span class="face">' + esc(emojiOf(r.id)) + '</span>' +
-          '<span class="ptag">' + esc(nameOf(r.id)) + '</span></div>';
+          '<span class="face">' + esc(emojiOf(r.id)) + '</span></div>';
       }).join("") + '</div>';
 
     var headline = n <= 1 ? "You’re the first one in" : n + " in the conference room";
@@ -298,7 +303,7 @@
       '</div></section>';
 
     var s = document.getElementById("start"); if (s) s.addEventListener("click", startShow);
-    document.getElementById("reface").addEventListener("click", function () { renderPickEmoji(); });
+    document.getElementById("reface").addEventListener("click", function () { renderSetup(); });
     document.getElementById("invite").addEventListener("click", invite);
   }
 
