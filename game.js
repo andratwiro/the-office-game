@@ -288,35 +288,9 @@
       '<section class="card stack"><span class="tab">Conference room</span>' +
       '<div class="countdown" id="cd">' + OG.fmtCountdown(OG.msUntilTrigger(settings.triggerTime)) + '</div>' +
       crowd +
-      startBtn +
-      '<div class="quick-row">' +
-        '<button class="qbtn" id="invite"><span class="qi">🔗</span><span>Invite</span></button>' +
-        '<a class="qbtn" href="manage.html"><span class="qi">📝</span><span>Questions</span></a>' +
-        '<button class="qbtn" id="reface"><span class="qi">🙂</span><span>My face</span></button>' +
-      '</div></section>';
+      startBtn + '</section>';
 
     var s = document.getElementById("start"); if (s) s.addEventListener("click", startShow);
-    document.getElementById("reface").addEventListener("click", function () { renderSetup(); });
-    document.getElementById("invite").addEventListener("click", invite);
-  }
-
-  function invite() {
-    var url = location.href.split("#")[0];
-    var btn = document.getElementById("invite");
-    if (navigator.share) {
-      navigator.share({ title: "Dunder Mifflin Trivia", text: "Join the trivia night →", url: url }).catch(function () {});
-      return;
-    }
-    var done = function () { flashBtn(btn, "✓", "Copied!"); };
-    if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(url).then(done, done);
-    else done();
-  }
-  function flashBtn(btn, icon, label) {
-    if (!btn) return;
-    var i = btn.querySelector(".qi"), t = btn.querySelector("span:last-child");
-    var oi = i.textContent, ot = t.textContent;
-    i.textContent = icon; t.textContent = label; btn.classList.add("ok");
-    setTimeout(function () { i.textContent = oi; t.textContent = ot; btn.classList.remove("ok"); }, 1600);
   }
 
   function renderQuestion() {
