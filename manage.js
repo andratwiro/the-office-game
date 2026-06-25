@@ -43,9 +43,13 @@
     var d = OG.zoneNow(); d.setMinutes(d.getMinutes() + n);
     return pad(d.getHours()) + ":" + pad(d.getMinutes());
   }
+  function plusSeconds(n) {              // second-precision trigger for quick tests
+    var d = OG.zoneNow(); d.setSeconds(d.getSeconds() + n);
+    return pad(d.getHours()) + ":" + pad(d.getMinutes()) + ":" + pad(d.getSeconds());
+  }
   $("saveTime").onclick = function () { saveTime($("trigTime").value || OG.DEFAULT_TRIGGER); };
+  $("in10").onclick = function () { var t = plusSeconds(10); $("trigTime").value = t; saveTime(t); };
   $("in2").onclick = function () { var t = plusMinutes(2); $("trigTime").value = t; saveTime(t); };
-  $("in5").onclick = function () { var t = plusMinutes(5); $("trigTime").value = t; saveTime(t); };
   $("reset20").onclick = function () { $("trigTime").value = "20:00"; saveTime("20:00"); };
 
   // ── type toggle ─────────────────────────────────────────────────────

@@ -68,14 +68,15 @@ window.OG = (function () {
     return new Date(new Date().toLocaleString("en-US", { timeZone: TIMEZONE }));
   }
 
-  // ms until the next occurrence of "HH:MM" in the trigger timezone.
+  // ms until the next occurrence of "HH:MM" (or "HH:MM:SS") in the trigger timezone.
   function msUntilTrigger(hhmm) {
     const parts = String(hhmm || DEFAULT_TRIGGER).split(":");
     const h = parseInt(parts[0], 10) || 0;
     const m = parseInt(parts[1], 10) || 0;
+    const s = parseInt(parts[2], 10) || 0;   // seconds optional; defaults to :00
     const now = zoneNow();
     const target = new Date(now);
-    target.setHours(h, m, 0, 0);
+    target.setHours(h, m, s, 0);
     if (target <= now) target.setDate(target.getDate() + 1);
     return target - now;
   }
@@ -88,9 +89,10 @@ window.OG = (function () {
     const parts = String(hhmm || DEFAULT_TRIGGER).split(":");
     const h = parseInt(parts[0], 10) || 0;
     const m = parseInt(parts[1], 10) || 0;
+    const s = parseInt(parts[2], 10) || 0;
     const now = zoneNow();
     const target = new Date(now);
-    target.setHours(h, m, 0, 0);
+    target.setHours(h, m, s, 0);
     return now >= target;
   }
 
