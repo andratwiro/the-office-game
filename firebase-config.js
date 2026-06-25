@@ -7,12 +7,11 @@
 // paste and the one-time console toggles (Anonymous auth, Realtime DB). We do not
 // use Firebase Storage, so storageBucket below is unused (leave it or delete it).
 window.FIREBASE_CONFIG = {
-  apiKey: "PASTE_API_KEY",
-  authDomain: "PASTE.firebaseapp.com",
-  projectId: "PASTE_PROJECT_ID",
-  storageBucket: "PASTE.appspot.com",
-  messagingSenderId: "PASTE_SENDER_ID",
-  appId: "PASTE_APP_ID",
-  // Realtime Database URL — in the console it ends with .firebasedatabase.app
-  databaseURL: "https://PASTE-default-rtdb.europe-west1.firebasedatabase.app/"
+  apiKey: "AIzaSyAfesATHtaGkh42dmSg-BRvpUL75RBhDjg",
+  authDomain: "office-trivia-c035a.firebaseapp.com",
+  databaseURL: "https://office-trivia-c035a-default-rtdb.europe-west1.firebasedatabase.app",
+  projectId: "office-trivia-c035a",
+  storageBucket: "office-trivia-c035a.firebasestorage.app",
+  messagingSenderId: "706291097104",
+  appId: "1:706291097104:web:7ff364d9012b3fc9753495"
 };
