@@ -350,23 +350,24 @@ h2 { font-size: clamp(22px, 5.5vw, 30px); }
 /* the face itself — emoji glyph or a transparent cutout — wears a thick white
    sticker outline (stacked drop-shadows trace any silhouette) so it reads like a
    peel-off sticker on the paper. */
-.cface {
-  --ring: drop-shadow(2.5px 0 0 #fff) drop-shadow(-2.5px 0 0 #fff)
+.cface { display: inline-block; line-height: 1; }
+/* emoji faces get the white sticker outline from stacked drop-shadows */
+.cface.glyph {
+  font-size: 52px;
+  filter: drop-shadow(2.5px 0 0 #fff) drop-shadow(-2.5px 0 0 #fff)
           drop-shadow(0 2.5px 0 #fff) drop-shadow(0 -2.5px 0 #fff)
           drop-shadow(2px 2px 0 #fff) drop-shadow(-2px 2px 0 #fff)
           drop-shadow(2px -2px 0 #fff) drop-shadow(-2px -2px 0 #fff)
           drop-shadow(0 3px 4px rgba(18,39,64,.3));
-  filter: var(--ring);
-  display: inline-block; line-height: 1;
 }
-.cface.glyph { font-size: 52px; }
-img.cface { width: 84px; height: 84px; object-fit: contain; }
+/* cutout photos already have the white outline baked in — just a soft shadow */
+img.cface { width: 92px; height: 92px; object-fit: contain; filter: drop-shadow(0 4px 5px rgba(18,39,64,.32)); }
 .speaker-reveal { display: flex; flex-direction: column; align-items: center; gap: 6px; }
 .speaker-reveal .cast-pick.reveal {
   border: none; background: none; box-shadow: none; padding: 4px; cursor: default;
 }
 .speaker-reveal .cface.glyph { font-size: 72px; }
-.speaker-reveal img.cface { width: 110px; height: 110px; }
+.speaker-reveal img.cface { width: 130px; height: 130px; }
 
 /* season / episode picker — VHS tape label */
 .tape { border: 1.5px solid var(--ink); background: repeating-linear-gradient(180deg, var(--paper-2) 0 26px, #fff 26px 52px); padding: 16px; }
