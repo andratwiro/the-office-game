@@ -45,6 +45,7 @@
       <div class="seg" role="tablist">
         <button id="tMc" class="on" type="button">Multiple choice</button>
         <button id="tEp" type="button">Guess the episode</button>
+        <button id="tTws" type="button">That’s what she said</button>
       </div>
 
       <div class="field">
@@ -79,6 +80,12 @@
         </div>
       </div>
 
+      <!-- That's what she said: pick 4 characters, mark who said the line -->
+      <div id="twsFields" style="display:none">
+        <label>The four faces <span class="hint">(tap the circle to mark who really said it)</span></label>
+        <div id="twsSlots" class="stack" style="margin-top:8px"></div>
+      </div>
+
       <button class="btn primary block" id="save">Save question</button>
     </section>
 
@@ -97,6 +104,7 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-database-compat.js"></script>
 <script src="firebase-config.js"></script>
 <script src="episodes.js"></script>
+<script src="characters.js"></script>
 <script src="app.js"></script>
 <script src="manage.js"></script>
 </body>

@@ -57,11 +57,15 @@
     type = t;
     $("tMc").classList.toggle("on", t === "mc");
     $("tEp").classList.toggle("on", t === "episode");
+    $("tTws").classList.toggle("on", t === "tws");
     $("mcFields").style.display = t === "mc" ? "" : "none";
     $("epFields").style.display = t === "episode" ? "" : "none";
-    $("promptLabel").textContent = t === "mc" ? "Question" : "Caption (optional)";
+    $("twsFields").style.display = t === "tws" ? "" : "none";
+    $("promptLabel").textContent = t === "mc" ? "Question" : t === "tws" ? "The line" : "Caption (optional)";
     $("prompt").placeholder = t === "mc"
       ? "e.g. What does Dwight keep in his desk for emergencies?"
+      : t === "tws"
+      ? "e.g. That’s what she said."
       : "e.g. Name this cold open. (leave blank for a default)";
     $("gifLabel").innerHTML = t === "episode"
       ? 'GIF / image <span class="hint">(required)</span>'
@@ -69,6 +73,24 @@
   }
   $("tMc").onclick = function () { setType("mc"); };
   $("tEp").onclick = function () { setType("episode"); };
+  $("tTws").onclick = function () { setType("tws"); };
+
+  // ── "That's what she said" character slots ──────────────────────────
+  function castOptions(selected) {
+    return CAST.list().map(function (c) {
+      return '<option value="' + c.id + '"' + (c.id === selected ? " selected" : "") + '>' + esc(c.name) + '</option>';
+    }).join("");
+  }
+  (function buildTwsSlots() {
+    var picks = CAST.list().slice(0, 4);
+    var rows = "";
+    for (var i = 0; i < 4; i++) {
+      rows += '<div class="choice" style="cursor:default">' +
+        '<input type="radio" name="twscorrect" title="Mark who said it" style="width:22px;height:22px;flex:0 0 auto"' + (i === 0 ? " checked" : "") + '>' +
+        '<select class="twsslot">' + castOptions(picks[i] && picks[i].id) + '</select></div>';
+    }
+    $("twsSlots").innerHTML = rows;
+  })();
 
   // ── MC options ──────────────────────────────────────────────────────
   function addOption(val) {
@@ -151,6 +173,13 @@
       var kept = [], newCorrect = 0;
       opts.forEach(function (o, i) { if (o) { if (i === correctIndex) newCorrect = kept.length; kept.push(o); } });
       rec.prompt = prompt; rec.options = kept; rec.correctIndex = newCorrect;
+    } else if (type === "tws") {
+      if (!prompt) return toast("Add the line", true);
+      var slots = [].slice.call(document.querySelectorAll("#twsSlots .twsslot")).map(function (s) { return s.value; });
+      var twsCorrect = [].slice.call(document.querySelectorAll('input[name="twscorrect"]')).findIndex(function (r) { return r.checked; });
+      if (new Set(slots).size < 4) return toast("Pick four different characters", true);
+      if (twsCorrect < 0) return toast("Mark who said it", true);
+      rec.prompt = prompt; rec.choices = slots; rec.correctId = slots[twsCorrect];
     } else {
       if (!gif) return toast("Episode questions need a GIF/image", true);
       rec.prompt = prompt || "Which episode is this?";
@@ -178,10 +207,14 @@
       var q = data[id];
       var answer = q.type === "mc"
         ? "Answer: " + esc((q.options || [])[q.correctIndex] || "?")
+        : q.type === "tws"
+        ? "Said by: " + esc(CAST.name(q.correctId))
         : "Answer: S" + q.correctSeason + " · E" + q.correctEpisode;
+      var kindClass = q.type === "episode" ? "episode" : q.type === "tws" ? "tws" : "";
+      var kindLabel = q.type === "episode" ? "Episode" : q.type === "tws" ? "Who said it" : "Multi";
       var thumb = q.gifUrl ? '<img src="' + esc(q.gifUrl) + '" alt="">' : "";
       return '<div class="qitem"><div>' +
-        '<span class="kind ' + (q.type === "episode" ? "episode" : "") + '">' + (q.type === "episode" ? "Episode" : "Multi") + '</span>' +
+        '<span class="kind ' + kindClass + '">' + kindLabel + '</span>' +
         '<div class="qtext">' + esc(q.prompt || "Which episode is this?") + '</div>' +
         '<div class="meta">' + answer + ' · by ' + esc(q.createdBy || "host") + '</div>' +
         '</div><div style="display:flex;flex-direction:column;gap:8px;align-items:flex-end">' + thumb +
@@ -224,7 +257,7 @@
     var wrap = OG.el('<div class="editor"></div>');
 
     var pf = OG.el('<div class="field"><label>' +
-      (q.type === "episode" ? "Caption (optional)" : "Question") +
+      (q.type === "episode" ? "Caption (optional)" : q.type === "tws" ? "The line" : "Question") +
       '</label><textarea rows="2" class="e-prompt"></textarea></div>');
     pf.querySelector(".e-prompt").value = q.prompt || "";
     wrap.appendChild(pf);
@@ -249,6 +282,19 @@
       while (box.children.length < 2) addRow("", false);
       of.querySelector(".e-add").onclick = function () { addRow("", false); };
       wrap.appendChild(of);
+    } else if (q.type === "tws") {
+      var tf = OG.el('<div class="field"><label>The four faces <span class="hint">(tap the circle to mark who said it)</span></label>' +
+        '<div class="e-tws stack" style="margin-top:8px"></div></div>');
+      var tbox = tf.querySelector(".e-tws");
+      var choices = (q.choices || []).slice();
+      while (choices.length < 4) choices.push((CAST.list()[choices.length] || {}).id);
+      choices.forEach(function (cid, i) {
+        var row = OG.el('<div class="choice" style="cursor:default">' +
+          '<input type="radio" name="etws-' + id + '" title="Mark who said it" style="width:22px;height:22px;flex:0 0 auto"' + (cid === q.correctId ? " checked" : "") + '>' +
+          '<select class="e-twsslot">' + castOptions(cid) + '</select></div>');
+        tbox.appendChild(row);
+      });
+      wrap.appendChild(tf);
     } else {
       var ef = OG.el('<div class="field"><div class="sel-row">' +
         '<div><label>Season</label><select class="e-season"></select></div>' +
@@ -295,6 +341,13 @@
       if (kept.length < 2) return toast("Need at least two filled options", true);
       if (newCorrect < 0) return toast("Mark which option is correct", true);
       patch.prompt = prompt; patch.options = kept; patch.correctIndex = newCorrect;
+    } else if (q.type === "tws") {
+      var slots = [].slice.call(wrap.querySelectorAll(".e-twsslot")).map(function (s) { return s.value; });
+      var tci = [].slice.call(wrap.querySelectorAll('input[name="etws-' + id + '"]')).findIndex(function (r) { return r.checked; });
+      if (!prompt) return toast("Add the line", true);
+      if (new Set(slots).size < 4) return toast("Pick four different characters", true);
+      if (tci < 0) return toast("Mark who said it", true);
+      patch.prompt = prompt; patch.choices = slots; patch.correctId = slots[tci];
     } else {
       patch.prompt = prompt || "Which episode is this?";
       patch.correctSeason = parseInt(wrap.querySelector(".e-season").value, 10);

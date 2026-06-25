@@ -149,6 +149,10 @@
       answer = payload.index;
       correct = answer === q.correctIndex;
       points = correct ? Math.round(50 + 50 * frac) : 0;
+    } else if (q.type === "tws") {
+      answer = payload.id;
+      correct = answer === q.correctId;
+      points = correct ? Math.round(50 + 50 * frac) : 0;
     } else {
       answer = { season: payload.season, episode: payload.episode };
       var sOK = answer.season === q.correctSeason, eOK = answer.episode === q.correctEpisode;
@@ -174,7 +178,7 @@
     if (cd) cd.textContent = OG.fmtCountdown(OG.msUntilTrigger(settings.triggerTime));
   }
   function lockChoices() {
-    stage.querySelectorAll(".choice:not([disabled]), .ep-submit:not([disabled])")
+    stage.querySelectorAll(".choice:not([disabled]), .ep-submit:not([disabled]), .cast-pick:not([disabled])")
       .forEach(function (n) { n.setAttribute("disabled", ""); });
   }
 
@@ -285,7 +289,7 @@
       : '<a class="btn primary block big-tap" href="manage.html">Add some questions first →</a>';
 
     stage.innerHTML =
-      '<section class="card stack"><span class="tab">Conference room</span>' +
+      '<section class="card stack">' +
       '<div class="countdown" id="cd">' + OG.fmtCountdown(OG.msUntilTrigger(settings.triggerTime)) + '</div>' +
       crowd +
       startBtn + '</section>';
@@ -305,21 +309,28 @@
       return castHTML(r.id, done ? "locked" : "think", done ? "locked in ✓" : "thinking…");
     });
 
-    var body = q.type === "mc"
+    var mine = a[me];
+    var body =
+        q.type === "mc"
       ? '<div class="choices">' + (q.options || []).map(function (opt, i) {
           return '<button class="choice" data-i="' + i + '"' + (answered ? " disabled" : "") +
             '><span class="box">' + String.fromCharCode(65 + i) + '</span><span>' + esc(opt) + "</span></button>";
         }).join("") + "</div>"
+      : q.type === "tws"
+      ? twsPickerHTML(q, answered, mine)
       : episodePickerHTML(answered);
+
+    var promptHTML = q.type === "tws"
+      ? '<div class="prompt quote">“' + esc(q.prompt || "") + '”</div>' +
+        '<div class="quote-q">…but who said it?</div>'
+      : '<div class="prompt">' + esc(q.prompt || (q.type === "episode" ? "Name the season & episode." : "")) + '</div>';
 
     stage.innerHTML =
       '<div class="timecode"><span class="qn">Take ' + (room.index + 1) + " / " + room.order.length +
       '</span><span id="tcount">00:10</span></div>' +
       '<div class="timerbar"><i id="tbar"></i></div>' + gif +
-      '<div class="prompt">' + esc(q.prompt || (q.type === "episode" ? "Name the season & episode." : "")) + '</div>' +
-      body + cast;
+      promptHTML + body + cast;
 
-    var mine = a[me];
     if (q.type === "mc") {
       stage.querySelectorAll(".choice").forEach(function (c) {
         if (mine && mine.answer === parseInt(c.dataset.i, 10)) c.classList.add("picked");
@@ -327,6 +338,16 @@
           if (c.hasAttribute("disabled")) return;
           lockChoices(); c.classList.add("picked");
           submit({ index: parseInt(c.dataset.i, 10) });
+        });
+      });
+    } else if (q.type === "tws") {
+      stage.querySelectorAll(".cast-pick").forEach(function (c) {
+        c.addEventListener("click", function () {
+          if (c.hasAttribute("disabled")) return;
+          lockChoices();
+          stage.querySelectorAll(".cast-pick").forEach(function (x) { x.classList.remove("picked"); });
+          c.classList.add("picked");
+          submit({ id: c.dataset.id });
         });
       });
     } else {
@@ -349,6 +370,14 @@
       '<div><label>Episode</label><select id="selEp"' + (answered ? " disabled" : "") + ">" + eOpts + "</select></div>" +
       "</div></div><button class=\"btn primary block big-tap ep-submit\"" + (answered ? " disabled" : "") + ">Lock in answer</button>";
   }
+  // 2×2 grid of character stickers — pick who said the line
+  function twsPickerHTML(q, answered, mine) {
+    return '<div class="cast-pick-grid">' + (q.choices || []).map(function (id) {
+      var picked = mine && mine.answer === id ? " picked" : "";
+      return '<button class="cast-pick' + picked + '" data-id="' + esc(id) + '"' + (answered ? " disabled" : "") + '>' +
+        CAST.faceHTML(id, esc) + '<span class="cname">' + esc(CAST.name(id)) + '</span></button>';
+    }).join("") + '</div>';
+  }
   function wireEpisodePicker() {
     var selS = document.getElementById("selSeason"), selE = document.getElementById("selEp");
     if (!selS) return;
@@ -366,10 +395,12 @@
   function fmtAnswer(q, ans) {
     if (!ans) return "no answer";
     if (q.type === "mc") return q.options ? q.options[ans.answer] : "?";
+    if (q.type === "tws") return CAST.name(ans.answer);
     return "S" + ans.answer.season + " · E" + ans.answer.episode;
   }
   function correctText(q) {
     if (q.type === "mc") return (q.options || [])[q.correctIndex];
+    if (q.type === "tws") return CAST.name(q.correctId);
     return "Season " + q.correctSeason + ", Episode " + q.correctEpisode;
   }
 
@@ -383,11 +414,17 @@
       var tag = ans ? ('“' + esc(fmtAnswer(q, ans)) + '” · +' + ans.points) : "missed it · +0";
       return castHTML(r.id, ans ? (ok ? "correct" : "wrong") : "wrong", tag);
     });
+    var speaker = q.type === "tws"
+      ? '<div class="speaker-reveal"><span class="cast-pick reveal">' + CAST.faceHTML(q.correctId, esc) +
+        '<span class="cname">' + esc(CAST.name(q.correctId)) + '</span></span>' +
+        '<div class="quote-q">said it.</div></div>'
+      : '<h2>' + esc(correctText(q)) + "</h2>";
+    var lead = q.type === "tws" ? "That’s what she said —" : "The answer was";
     stage.innerHTML =
       '<div class="timecode"><span class="qn">Take ' + (room.index + 1) + " / " + room.order.length +
       '</span><span>REVEAL</span></div>' +
-      '<section class="card stack"><div class="label">The answer was</div>' +
-      '<h2>' + esc(correctText(q)) + "</h2>" + gif + '</section>' + cast;
+      '<section class="card stack"><div class="label">' + lead + '</div>' +
+      speaker + gif + '</section>' + cast;
   }
 
   function renderFinished() {

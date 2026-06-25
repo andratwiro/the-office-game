@@ -305,6 +305,48 @@ h2 { font-size: clamp(22px, 5.5vw, 30px); }
 .choice.wrong { background: #f3d9d6; border-color: var(--rec); }
 .choice[disabled] { cursor: default; }
 
+/* ── "That's what she said" — quote + character stickers ──────────────── */
+.prompt.quote { font-style: italic; text-align: center; }
+.quote-q {
+  font-family: var(--mono); font-size: 13px; letter-spacing: 2px; text-transform: uppercase;
+  color: var(--ink-soft); text-align: center; margin-top: -8px;
+}
+.cast-pick-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.cast-pick {
+  font-family: var(--sans); cursor: pointer;
+  border: 1.5px solid var(--ink); background: var(--paper-2);
+  padding: 14px 8px 12px; display: flex; flex-direction: column; align-items: center; gap: 8px;
+  box-shadow: 3px 3px 0 var(--ink); transition: transform .06s, box-shadow .06s, background .12s;
+}
+.cast-pick:hover { background: #fff; }
+.cast-pick:active { transform: translate(3px, 3px); box-shadow: 0 0 0; }
+.cast-pick .cname { font-family: var(--serif); font-size: 18px; color: var(--navy); }
+.cast-pick.picked { background: var(--navy); }
+.cast-pick.picked .cname { color: #fff; }
+.cast-pick[disabled] { cursor: default; }
+.cast-pick:focus-visible { outline: 3px solid var(--highlight); outline-offset: 2px; }
+
+/* the face itself — emoji glyph or a transparent cutout — wears a thick white
+   sticker outline (stacked drop-shadows trace any silhouette) so it reads like a
+   peel-off sticker on the paper. */
+.cface {
+  --ring: drop-shadow(2.5px 0 0 #fff) drop-shadow(-2.5px 0 0 #fff)
+          drop-shadow(0 2.5px 0 #fff) drop-shadow(0 -2.5px 0 #fff)
+          drop-shadow(2px 2px 0 #fff) drop-shadow(-2px 2px 0 #fff)
+          drop-shadow(2px -2px 0 #fff) drop-shadow(-2px -2px 0 #fff)
+          drop-shadow(0 3px 4px rgba(18,39,64,.3));
+  filter: var(--ring);
+  display: inline-block; line-height: 1;
+}
+.cface.glyph { font-size: 52px; }
+img.cface { width: 84px; height: 84px; object-fit: contain; }
+.speaker-reveal { display: flex; flex-direction: column; align-items: center; gap: 6px; }
+.speaker-reveal .cast-pick.reveal {
+  border: none; background: none; box-shadow: none; padding: 4px; cursor: default;
+}
+.speaker-reveal .cface.glyph { font-size: 72px; }
+.speaker-reveal img.cface { width: 110px; height: 110px; }
+
 /* season / episode picker — VHS tape label */
 .tape { border: 1.5px solid var(--ink); background: repeating-linear-gradient(180deg, var(--paper-2) 0 26px, #fff 26px 52px); padding: 16px; }
 .tape .label { margin-bottom: 10px; }
@@ -405,6 +447,7 @@ select:focus-visible, input:focus-visible, textarea:focus-visible, .choice:focus
 .qitem { border: 1.5px solid var(--ink); background: var(--paper-2); padding: 14px; display: grid; grid-template-columns: 1fr auto; gap: 10px; align-items: start; }
 .qitem .kind { font-family: var(--mono); font-size: 10px; letter-spacing: 2px; text-transform: uppercase; color: #fff; background: var(--navy); padding: 2px 8px; display: inline-block; }
 .qitem .kind.episode { background: var(--rec); }
+.qitem .kind.tws { background: var(--green); }
 .qitem .qtext { font-family: var(--serif); font-size: 18px; margin: 6px 0 2px; }
 .qitem .meta { font-family: var(--mono); font-size: 12px; color: var(--ink-soft); }
 .qitem img { max-width: 80px; max-height: 56px; border: 1px solid var(--ink); }
