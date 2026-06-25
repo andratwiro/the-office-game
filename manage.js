@@ -15,6 +15,10 @@
   var who = OG.getName() || "host";
   var type = "mc";
   var pendingGifUrl = "";   // resolved upload URL, if any
+  var roomRef = db.ref("rooms/" + OG.ROOM);
+  var allQuestions = {};    // mirrors questions/, for starting the show
+  var TS = firebase.database.ServerValue ? firebase.database.ServerValue.TIMESTAMP : Date.now;
+  var MAX_QUESTIONS = 14;
 
   function toast(msg, bad) {
     var t = $("toast"); t.textContent = msg;
@@ -51,6 +55,41 @@
   $("in10").onclick = function () { var t = plusSeconds(10); $("trigTime").value = t; saveTime(t); };
   $("in2").onclick = function () { var t = plusMinutes(2); $("trigTime").value = t; saveTime(t); };
   $("reset20").onclick = function () { $("trigTime").value = "20:00"; saveTime("20:00"); };
+
+  // ── run the show ────────────────────────────────────────────────────
+  var roomStatus = "idle", roomIndex = 0, roomLen = 0;
+  roomRef.on("value", function (s) {
+    var r = s.val() || {};
+    roomStatus = r.status || "idle";
+    roomIndex = r.index || 0;
+    roomLen = (r.order && r.order.length) || 0;
+    renderShowState();
+  });
+  function renderShowState() {
+    var el = $("showState"), btn = $("startShow");
+    if (roomStatus === "playing") {
+      el.textContent = "LIVE · Q" + (roomIndex + 1) + "/" + roomLen;
+      el.style.color = "#C8362B"; btn.textContent = "▶ Restart the show";
+    } else if (roomStatus === "finished") {
+      el.textContent = "FINISHED"; el.style.color = "#5B564A"; btn.textContent = "▶ Start again";
+    } else {
+      el.textContent = "IN THE LOBBY"; el.style.color = "#2E7D52"; btn.textContent = "▶ Start the show";
+    }
+  }
+  $("startShow").onclick = function () {
+    var ids = Object.keys(allQuestions);
+    if (!ids.length) return toast("Add a question first", true);
+    if (roomStatus === "playing" && !confirm("A show is live — restart it from question 1?")) return;
+    roomRef.update({
+      status: "playing", phase: "question", index: 0,
+      order: OG.shuffle(ids).slice(0, MAX_QUESTIONS), hostId: OG.uid(),
+      round: OG.serverNow(), startedAt: TS, answers: null
+    }).then(function () { toast("Show started ▶"); }).catch(function (e) { toast("Couldn’t start: " + e.message, true); });
+  };
+  $("resetShow").onclick = function () {
+    roomRef.update({ status: "idle", phase: null, answers: null, order: null, index: 0 })
+      .then(function () { toast("Back to the lobby"); });
+  };
 
   // ── type toggle ─────────────────────────────────────────────────────
   function setType(t) {
@@ -199,6 +238,7 @@
 
   db.ref("questions").on("value", function (s) {
     var data = s.val() || {};
+    allQuestions = data;
     var ids = Object.keys(data);
     $("count").textContent = ids.length + (ids.length === 1 ? " question" : " questions");
     if (!ids.length) { $("list").innerHTML = '<p class="muted">Nothing yet — add your first one above.</p>'; editingId = null; return; }

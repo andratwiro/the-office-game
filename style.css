@@ -237,6 +237,27 @@ h2 { font-size: clamp(22px, 5.5vw, 30px); }
 .peep.me .ptag::after { content: " ·you"; font-family: var(--mono); font-size: 10px; color: var(--ink-soft); }
 .crowd-meta { text-align: center; margin-top: 2px; }
 
+/* the lobby is a calm waiting room: countdown, the crowd, a quiet pulse — the
+   host runs the show from HQ, so there's no button here. content is centered in
+   a tall card so the few elements sit balanced rather than top-heavy. */
+.lobby-card {
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: clamp(26px, 6.5vh, 52px);
+  min-height: 60vh;
+  padding: clamp(28px, 6vh, 56px) 22px;
+}
+.lobby-card .countdown { margin: 0; font-size: clamp(46px, 15vw, 78px); }
+.lobby-card .crowd { margin: 0; --face: 60px; }
+.waiting {
+  font-family: var(--mono); font-size: 11px; letter-spacing: 2.5px; text-transform: uppercase;
+  color: var(--ink-soft); display: inline-flex; align-items: center; gap: 9px;
+}
+.waiting .dots { display: inline-flex; gap: 4px; }
+.waiting .dots i { width: 5px; height: 5px; border-radius: 50%; background: var(--ink-soft); opacity: .3; animation: wdot 1.3s ease-in-out infinite; }
+.waiting .dots i:nth-child(2) { animation-delay: .22s; }
+.waiting .dots i:nth-child(3) { animation-delay: .44s; }
+@keyframes wdot { 0%, 100% { opacity: .25; transform: translateY(0); } 50% { opacity: 1; transform: translateY(-2px); } }
+
 /* quick actions: a 3-up row of fat, thumb-sized buttons under the lobby CTA */
 .quick-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-top: 2px; }
 .qbtn {
@@ -469,7 +490,7 @@ a.link { color: var(--blue); font-weight: 600; }
 }
 @media (prefers-reduced-motion: reduce) {
   .rec .dot { animation: none; }
-  .cast .ava, .peep .face { animation: none !important; }
+  .cast .ava, .peep .face, .waiting .dots i { animation: none !important; }
   .cast.correct .ava { transform: scale(1.1); }
   .cast.wrong .ava { transform: rotate(8deg); filter: grayscale(.8); }
   .cast.correct .ava::after { content: "✨"; animation: none; opacity: 1; }

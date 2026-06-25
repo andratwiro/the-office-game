@@ -11,7 +11,6 @@
 
   var QUESTION_MS = 10000;
   var REVEAL_MS = 4800;
-  var MAX_QUESTIONS = 14;
   var TS = firebase.database.ServerValue ? firebase.database.ServerValue.TIMESTAMP : Date.now;
 
   var me = null;          // this device's stable uid
@@ -120,16 +119,8 @@
   }
 
   // ── actions ───────────────────────────────────────────────────────────
-  function startShow() {
-    var ids = Object.keys(questions);
-    if (!ids.length) return;
-    localAnsweredAt = -1;
-    roomRef.update({
-      status: "playing", phase: "question", index: 0,
-      order: OG.shuffle(ids).slice(0, MAX_QUESTIONS), hostId: me,
-      round: OG.serverNow(), startedAt: TS, answers: null
-    });
-  }
+  // The show is started from HQ (manage.html); the game client only reacts to
+  // room state and submits answers.
   function playAgain() {
     localAnsweredAt = -1;
     roomRef.update({ status: "idle", phase: null, answers: null, order: null, index: 0 });
@@ -272,7 +263,6 @@
   }
 
   function renderLobby() {
-    var hasQ = Object.keys(questions).length > 0;
     var here = rosterOnline();
     var n = here.length;
 
@@ -284,17 +274,13 @@
           '<span class="face">' + esc(emojiOf(r.id)) + '</span></div>';
       }).join("") + '</div>';
 
-    var startBtn = hasQ
-      ? '<button class="btn primary block big-tap" id="start">Start the show ▶</button>'
-      : '<a class="btn primary block big-tap" href="manage.html">Add some questions first →</a>';
-
+    // The host starts the show from HQ — the lobby is purely a waiting room.
     stage.innerHTML =
-      '<section class="card stack">' +
+      '<section class="card lobby-card">' +
       '<div class="countdown" id="cd">' + OG.fmtCountdown(OG.msUntilTrigger(settings.triggerTime)) + '</div>' +
       crowd +
-      startBtn + '</section>';
-
-    var s = document.getElementById("start"); if (s) s.addEventListener("click", startShow);
+      '<div class="waiting">Waiting for the show<span class="dots"><i></i><i></i><i></i></span></div>' +
+      '</section>';
   }
 
   function renderQuestion() {
@@ -459,7 +445,7 @@
       '<section class="card stack center"><span class="tab">That’s a wrap</span>' +
       '<div class="banner">' + esc(banner) + '</div>' +
       '<div class="score-grid">' + rows + '</div>' +
-      '<button class="btn primary block big-tap" id="again">Run it back ↺</button>' +
+      '<button class="btn block big-tap" id="again">↺ Back to the lobby</button>' +
       '<a class="link" href="manage.html">Add new questions</a></section>';
     document.getElementById("again").addEventListener("click", playAgain);
   }
