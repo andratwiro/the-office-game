@@ -45,9 +45,14 @@ at the top of `../style.css`:
 
 ## Palette (from `../style.css` `:root`)
 
-`--paper #E4D9BC` manila · `--paper-2 #F2ECDA` memo · `--navy #1C3A5E` Dunder Mifflin
-blue · `--rec #C8362B` REC red · `--green #2E7D52` APPROVED · `--highlight #F2C200`
-legal-pad yellow.
+Pulled from *The Office* / Dunder Mifflin — cooler and grayer than a manila folder,
+closer to the fluorescent-lit Scranton office:
+
+`--paper #D8CFBA` office-wall beige · `--paper-2 #F7F3EA` copy paper · `--navy
+#15355E` Dunder Mifflin navy (the logotype) · `--blue #2F6FB2` DM brand blue (links/
+active) · `--rec #C23B2E` camcorder REC red · `--beet #8E2A2A` Dwight's beet
+(destructive) · `--green #357A54` APPROVED · `--highlight #EFCB3A` Scranton legal-pad
+yellow.
 
 ## Regenerating
 

@@ -20,17 +20,22 @@
 @font-face { font-family: 'Archivo'; font-style: normal; font-weight: 700; font-display: swap; src: url('brand/fonts/archivo-700.woff2') format('woff2'); }
 
 :root {
-  --paper:    #E4D9BC;   /* manila folder */
-  --paper-2:  #F2ECDA;   /* memo sheet */
-  --paper-3:  #D6C9A6;   /* folder edge / shadow */
-  --ink:      #20201B;
-  --ink-soft: #5B564A;
-  --navy:     #1C3A5E;   /* Dunder Mifflin */
-  --navy-deep:#122740;
-  --rec:      #C8362B;   /* camcorder record */
-  --green:    #2E7D52;   /* APPROVED stamp */
-  --highlight:#F2C200;   /* legal pad / sticky note */
-  --rule:     #B9AE90;   /* manila hairline */
+  /* Palette pulled from The Office / Dunder Mifflin: cool Scranton office-wall
+     beige, copy-paper white, the navy logotype + brand blue, with character
+     accents (Scranton legal-pad yellow, Dwight's beet red, APPROVED green). */
+  --paper:    #D8CFBA;   /* office-wall beige (cooler, grayer than manila) */
+  --paper-2:  #F7F3EA;   /* copy-paper memo sheet */
+  --paper-3:  #C6BBA0;   /* page edge / drop shadow */
+  --ink:      #1E232B;   /* cool charcoal — fluorescent-lit office */
+  --ink-soft: #586069;   /* office grey */
+  --navy:     #15355E;   /* Dunder Mifflin navy (the logotype) */
+  --navy-deep:#0E2742;
+  --blue:     #2F6FB2;   /* Dunder Mifflin brand blue — links / active */
+  --rec:      #C23B2E;   /* camcorder REC red */
+  --beet:     #8E2A2A;   /* Dwight's beet — destructive actions */
+  --green:    #357A54;   /* APPROVED stamp */
+  --highlight:#EFCB3A;   /* Scranton legal-pad yellow */
+  --rule:     #B2A78C;   /* hairline rule */
 
   --display: Impact, "Anton", "Haettenschweiler", "Arial Narrow Bold", sans-serif; /* the Dunder Mifflin logotype look */
   --serif: "DM Serif Display", Georgia, serif;
@@ -83,7 +88,7 @@ body {
 }
 .wordmark .logo {        /* real Dunder Mifflin logotype (vector) */
   display: block;
-  height: clamp(40px, 11vw, 54px);
+  height: clamp(58px, 15vw, 82px);
   width: auto;
 }
 .wordmark small {
@@ -168,7 +173,7 @@ h2 { font-size: clamp(22px, 5.5vw, 30px); }
 .btn.primary { background: var(--navy); color: #fff; border-color: var(--navy-deep); }
 .btn.primary:hover { background: var(--navy-deep); }
 .btn.ghost { box-shadow: none; background: transparent; border-style: dashed; }
-.btn.danger { color: var(--rec); border-color: var(--rec); box-shadow: 3px 3px 0 var(--rec); }
+.btn.danger { color: var(--beet); border-color: var(--beet); box-shadow: 3px 3px 0 var(--beet); }
 .btn[disabled] { opacity: .45; cursor: not-allowed; box-shadow: none; }
 .btn:focus-visible { outline: 3px solid var(--highlight); outline-offset: 2px; }
 .btn-row { display: flex; gap: 12px; flex-wrap: wrap; }
@@ -350,7 +355,7 @@ select:focus-visible, input:focus-visible, textarea:focus-visible, .choice:focus
 .center { text-align: center; }
 .stack { display: grid; gap: 16px; }
 .spread { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; flex-wrap: wrap; }
-a.link { color: var(--navy); font-weight: 600; }
+a.link { color: var(--blue); font-weight: 600; }
 
 @media (max-width: 460px) {
   .placards, .sel-row { grid-template-columns: 1fr; }
