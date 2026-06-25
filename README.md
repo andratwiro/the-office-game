@@ -1,9 +1,10 @@
 # Dunder Mifflin Trivia
 
-A tiny real-time trivia game for two — Rob & Aleida. Open it on your phones, wait
-in the shared lobby as emoji avatars, and answer Office questions with 10 seconds
-each. Your emoji cheers when you're right and wilts when you're wrong. Triggers
-nightly at **20:00 CET** (configurable), and you seed all the questions yourselves.
+A tiny real-time trivia party. Open it on your phones — everyone picks a name and
+an emoji and piles into one shared conference-room lobby (it holds any headcount).
+Answer Office questions with 10 seconds each; your emoji cheers when you're right
+and wilts when you're wrong. Triggers nightly at **20:00 CET** (configurable), and
+you seed all the questions yourselves.
 
 Built the same way as `riot`: vanilla HTML/JS + Firebase **Realtime Database**, no
 build step. Hosted free on **GitHub Pages**; the public live URL is
@@ -46,7 +47,7 @@ keeps everything on the free **Spark** plan.
    locked mode.
 
 4. **Anonymous auth** — Build → Authentication → Sign-in method → **Anonymous →
-   Enable.** This lets both phones read/write without anyone logging in.
+   Enable.** This lets every phone read/write without anyone logging in.
 
 5. **Database rules** — Realtime Database → **Rules** tab → paste this and Publish:
 

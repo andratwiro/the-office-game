@@ -1,12 +1,9 @@
 // Shared core: Firebase wiring, player identity, synced clock, small helpers.
 // Loaded on every page. Exposes a single global: window.OG
 window.OG = (function () {
-  // The two of you. The emoji here is just a default; each phone picks its own
-  // avatar in the lobby (stored per-device and broadcast over presence).
-  const PLAYERS = {
-    rob:    { name: "Rob",    emoji: "🧔" },
-    aleida: { name: "Aleida", emoji: "👩‍🦰" }
-  };
+  // No fixed roster: anyone who opens the room is a player. Each phone gets a
+  // stable per-device id and broadcasts its own name + emoji over presence, so
+  // the conference room can hold however many people show up.
 
   // Avatar choices for the lobby picker (riot-style).
   const EMOJI = ["🧔","👩‍🦰","🦊","🦉","🐢","🐝","🦋","🐙","🐶","🐱","🐼","🐧",
@@ -43,21 +40,26 @@ window.OG = (function () {
   }
 
   // ---- identity ----------------------------------------------------------
-  function getPlayer() {
-    const id = localStorage.getItem("og_player");
-    return PLAYERS[id] ? id : null;
+  // A stable per-device id, minted lazily and kept forever. This is the key the
+  // room files everyone under; name + emoji ride alongside it over presence.
+  function uid() {
+    var id = localStorage.getItem("og_uid");
+    if (!id) {
+      id = "p" + Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
+      localStorage.setItem("og_uid", id);
+    }
+    return id;
   }
-  function setPlayer(id) {
-    if (PLAYERS[id]) localStorage.setItem("og_player", id);
+  function getName() { return localStorage.getItem("og_name") || ""; }
+  function setName(n) {
+    n = String(n == null ? "" : n).trim().replace(/\s+/g, " ").slice(0, 22);
+    if (n) localStorage.setItem("og_name", n);
+    return n;
   }
-  function forgetPlayer() { localStorage.removeItem("og_player"); }
-  function getEmoji() {
-    var e = localStorage.getItem("og_emoji");
-    if (e) return e;
-    var id = getPlayer();
-    return (PLAYERS[id] && PLAYERS[id].emoji) || "🙂";
-  }
+  function getEmoji() { return localStorage.getItem("og_emoji") || ""; }
   function setEmoji(e) { if (e) localStorage.setItem("og_emoji", e); }
+  function hasIdentity() { return !!(getName() && getEmoji()); }
+  function forgetMe() { localStorage.removeItem("og_name"); localStorage.removeItem("og_emoji"); }
 
   // ---- synced time -------------------------------------------------------
   function serverNow() { return Date.now() + serverOffset; }
@@ -128,10 +130,10 @@ window.OG = (function () {
   }
 
   return {
-    PLAYERS: PLAYERS, EMOJI: EMOJI, ROOM: ROOM, DEFAULT_TRIGGER: DEFAULT_TRIGGER, TIMEZONE: TIMEZONE,
+    EMOJI: EMOJI, ROOM: ROOM, DEFAULT_TRIGGER: DEFAULT_TRIGGER, TIMEZONE: TIMEZONE,
     init: init, configured: configured,
     db: function () { return db; }, auth: function () { return auth; },
-    getPlayer: getPlayer, setPlayer: setPlayer, forgetPlayer: forgetPlayer,
+    uid: uid, getName: getName, setName: setName, hasIdentity: hasIdentity, forgetMe: forgetMe,
     getEmoji: getEmoji, setEmoji: setEmoji,
     serverNow: serverNow, zoneNow: zoneNow,
     msUntilTrigger: msUntilTrigger, passedToday: passedToday, fmtCountdown: fmtCountdown,

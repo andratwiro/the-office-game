@@ -1,8 +1,9 @@
 // The game engine + rendering for index.html.
-// Two players, one shared Realtime-DB room, server-timestamp-synced 10s timers.
-// The star of the screen is each player's emoji avatar: it waits in the lobby,
-// shows what it's doing each question (thinking → locked in), then cheers or
-// wilts on the reveal. Score feedback rides on the face.
+// One shared Realtime-DB room, server-timestamp-synced 10s timers, and an
+// open-door roster: whoever opens the room joins as a player. The star of the
+// screen is the crowd of emoji avatars — it fills the conference room in the
+// lobby (any headcount), shows what each face is doing per question
+// (thinking → locked in), then cheers or wilts on the reveal.
 (function () {
   "use strict";
   var stage = document.getElementById("stage");
@@ -13,7 +14,7 @@
   var MAX_QUESTIONS = 14;
   var TS = firebase.database.ServerValue ? firebase.database.ServerValue.TIMESTAMP : Date.now;
 
-  var me = null;
+  var me = null;          // this device's stable uid
   var room = null;        // latest room snapshot value
   var questions = {};     // id -> question
   var settings = { triggerTime: OG.DEFAULT_TRIGGER };
@@ -25,9 +26,9 @@
   // ── boot ────────────────────────────────────────────────────────────
   if (!OG.configured()) { renderConfig(); return; }
   OG.init();
-  me = OG.getPlayer();
-  if (!me) renderPickName();
-  else if (!localStorage.getItem("og_emoji")) renderPickEmoji();
+  me = OG.uid();
+  if (!OG.getName()) renderPickName();
+  else if (!OG.getEmoji()) renderPickEmoji();
   else join();
 
   function join() {
@@ -36,9 +37,9 @@
     var db = OG.db();
     roomRef = db.ref("rooms/" + OG.ROOM);
 
-    var p = OG.PLAYERS[me];
     meRef = roomRef.child("players/" + me);
-    meRef.update({ name: p.name, emoji: OG.getEmoji(), online: true, lastSeen: TS });
+    meRef.update({ name: OG.getName(), emoji: OG.getEmoji(), online: true, lastSeen: TS });
+    meRef.child("joinedAt").once("value", function (s) { if (!s.exists()) meRef.child("joinedAt").set(TS); });
     meRef.child("online").onDisconnect().set(false);
     setInterval(function () { meRef.child("lastSeen").set(TS); }, 4000);
     window.addEventListener("beforeunload", function () { meRef.child("online").set(false); });
@@ -55,12 +56,34 @@
     setInterval(tick, 100);
   }
 
-  // ── host loop ─────────────────────────────────────────────────────────
-  function onlineCount() {
-    var n = 0, pl = room && room.players;
-    for (var k in pl) if (pl[k] && pl[k].online) n++;
-    return n;
+  // ── roster ──────────────────────────────────────────────────────────────
+  // The room's people, oldest seat first. me is folded in even before the first
+  // snapshot lands so you always see yourself the instant you join.
+  function players() { return (room && room.players) || {}; }
+  function rosterAll() {
+    var pl = players(), ids = Object.keys(pl);
+    if (ids.indexOf(me) === -1 && OG.getName()) ids.push(me);
+    return ids.map(function (id) {
+      var p = pl[id] || (id === me ? { name: OG.getName(), emoji: OG.getEmoji(), online: true } : {});
+      return { id: id, online: !!p.online, joinedAt: p.joinedAt || 0 };
+    }).sort(function (a, b) {
+      return (a.joinedAt - b.joinedAt) || (a.id < b.id ? -1 : 1);
+    });
   }
+  function rosterOnline() { return rosterAll().filter(function (r) { return r.online; }); }
+
+  function nameOf(id) {
+    var p = players()[id];
+    return (p && p.name) || (id === me ? OG.getName() : "Someone");
+  }
+  function emojiOf(id) {
+    var p = players()[id];
+    return (p && p.emoji) || (id === me ? OG.getEmoji() : "🙂");
+  }
+  function isOnline(id) { var p = players()[id]; return !!(p && p.online); }
+
+  // ── host loop ─────────────────────────────────────────────────────────
+  function onlineCount() { return rosterOnline().length; }
   function answeredCount(i) {
     var a = room && room.answers && room.answers[i];
     return a ? Object.keys(a).length : 0;
@@ -128,7 +151,7 @@
     }
     localAnsweredAt = room.index;
     roomRef.child("answers/" + room.index + "/" + me).set(
-      { answer: answer, correct: correct, points: points, ms: ms, type: q.type });
+      { answer: answer, correct: correct, points: points, ms: ms, type: q.type, name: OG.getName(), emoji: OG.getEmoji() });
   }
 
   // ── per-frame timer / countdown ───────────────────────────────────────
@@ -150,18 +173,20 @@
   }
 
   // ── avatar helpers ────────────────────────────────────────────────────
-  function emojiOf(id) {
-    var pl = room && room.players && room.players[id];
-    return (pl && pl.emoji) || OG.PLAYERS[id].emoji;
-  }
-  function isOnline(id) { return !!(room && room.players && room.players[id] && room.players[id].online); }
+  // density label drives avatar sizing so the same crowd reads well at any count
+  function densityFor(n) { return n <= 4 ? "roomy" : n <= 9 ? "cozy" : n <= 16 ? "tight" : "packed"; }
+
   // state: idle | think | locked | correct | wrong | away
-  function avatarHTML(id, state, tag) {
-    var p = OG.PLAYERS[id];
+  function castHTML(id, state, tag) {
     return '<div class="cast ' + state + (id === me ? " me" : "") + '">' +
       '<span class="ava">' + esc(emojiOf(id)) + '</span>' +
-      '<span class="cast-name">' + esc(p.name) + '</span>' +
+      '<span class="cast-name">' + esc(nameOf(id)) + '</span>' +
       (tag ? '<span class="cast-tag">' + tag + '</span>' : '') + '</div>';
+  }
+  function castRow(list, big, reacting, render) {
+    var density = densityFor(list.length);
+    return '<div class="cast-row' + (big ? " big" : "") + (reacting ? " reacting" : "") +
+      '" data-density="' + density + '">' + list.map(render).join("") + '</div>';
   }
 
   // ── routing ───────────────────────────────────────────────────────────
@@ -169,10 +194,10 @@
     if (!joined) return;
     var key;
     if (!room || room.status == null || room.status === "idle")
-      key = "lobby:" + settings.triggerTime + ":" + castFingerprint();
-    else if (room.status === "finished") key = "finished";
-    else if (room.phase === "reveal") key = "reveal:" + room.index;
-    else key = "q:" + room.index + ":" + answeredIds(room.index) + ":" + (localAnsweredAt === room.index);
+      key = "lobby:" + settings.triggerTime + ":" + rosterFingerprint();
+    else if (room.status === "finished") key = "finished:" + rosterFingerprint();
+    else if (room.phase === "reveal") key = "reveal:" + room.index + ":" + rosterFingerprint();
+    else key = "q:" + room.index + ":" + rosterFingerprint() + ":" + answeredIds(room.index) + ":" + (localAnsweredAt === room.index);
     if (key === lastKey) return;
     lastKey = key;
     if (!room || room.status == null || room.status === "idle") renderLobby();
@@ -180,11 +205,8 @@
     else if (room.phase === "reveal") renderReveal();
     else renderQuestion();
   }
-  function castFingerprint() {
-    var pl = (room && room.players) || {};
-    return Object.keys(OG.PLAYERS).map(function (id) {
-      return id + (pl[id] && pl[id].online ? "1" : "0") + (pl[id] && pl[id].emoji || "");
-    }).join("|");
+  function rosterFingerprint() {
+    return rosterOnline().map(function (r) { return r.id + (emojiOf(r.id)); }).join("|");
   }
   function answeredIds(i) {
     var a = room && room.answers && room.answers[i];
@@ -198,23 +220,27 @@
       '<p>Paste your Firebase web config into <code>firebase-config.js</code>, then reload. ' +
       'Full steps are in <strong>README.md</strong>.</p>' +
       '<p class="hint">The game needs a Firebase project (Realtime Database + Anonymous auth) ' +
-      'to share one room between two phones.</p></section>';
+      'to share one room between phones.</p></section>';
   }
 
   function renderPickName() {
-    var cards = Object.keys(OG.PLAYERS).map(function (id) {
-      var p = OG.PLAYERS[id];
-      return '<button class="placard" data-id="' + id + '"><div class="emoji">' + p.emoji +
-        '</div><div class="who">' + esc(p.name) + '</div></button>';
-    }).join("");
     stage.innerHTML =
       '<section class="card stack"><span class="tab">Identification</span>' +
-      '<h1>Who’s reporting for<br>the documentary?</h1>' +
-      '<p class="hint">Pick your name — this phone stays signed in as you.</p>' +
-      '<div class="placards">' + cards + '</div></section>';
-    stage.querySelectorAll(".placard").forEach(function (b) {
-      b.addEventListener("click", function () { OG.setPlayer(b.dataset.id); me = OG.getPlayer(); renderPickEmoji(); });
-    });
+      '<h1>Who’s reporting<br>for the documentary?</h1>' +
+      '<p class="hint">Type your name — this phone stays signed in as you.</p>' +
+      '<input id="nm" class="bigfield" type="text" placeholder="Your name" maxlength="22" ' +
+      'autocomplete="off" autocapitalize="words" enterkeyhint="go">' +
+      '<button class="btn primary block" id="go">Continue →</button></section>';
+    var input = document.getElementById("nm"), go = document.getElementById("go");
+    input.value = OG.getName();
+    input.focus();
+    function next() {
+      var n = OG.setName(input.value);
+      if (!n) { input.focus(); return; }
+      OG.getEmoji() ? join() : renderPickEmoji();
+    }
+    go.addEventListener("click", next);
+    input.addEventListener("keydown", function (e) { if (e.key === "Enter") next(); });
   }
 
   function renderPickEmoji() {
@@ -224,38 +250,75 @@
     stage.innerHTML =
       '<section class="card stack"><span class="tab">Casting</span>' +
       '<h1>Choose your face</h1>' +
-      '<p class="hint">Hi ' + esc(OG.PLAYERS[me].name) + ' — this emoji is you all night. It’ll cheer when you’re right.</p>' +
-      '<div class="ava-grid">' + grid + '</div></section>';
+      '<p class="hint">Hi ' + esc(OG.getName()) + ' — this emoji is you all night. It’ll cheer when you’re right.</p>' +
+      '<div class="ava-grid">' + grid + '</div>' +
+      '<a class="link center" href="#" id="backName">← change my name</a></section>';
     stage.querySelectorAll(".ava-pick").forEach(function (b) {
+      if (b.dataset.e === OG.getEmoji()) b.classList.add("on");
       b.addEventListener("click", function () { OG.setEmoji(b.dataset.e); join(); });
+    });
+    document.getElementById("backName").addEventListener("click", function (ev) {
+      ev.preventDefault(); renderPickName();
     });
   }
 
   function renderLobby() {
     var hasQ = Object.keys(questions).length > 0;
     var unlocked = OG.passedToday(settings.triggerTime);
-    var avatars = Object.keys(OG.PLAYERS).map(function (id) {
-      var online = isOnline(id);
-      return avatarHTML(id, online ? "idle" : "away", online ? "here" : "not here yet");
-    }).join("");
+    var here = rosterOnline();
+    var n = here.length;
+
+    // each face gets a stagger index (--i) so the bob ripples across the crowd
+    var crowd = '<div class="crowd" data-density="' + densityFor(n) + '">' +
+      here.map(function (r, i) {
+        return '<div class="peep' + (r.id === me ? " me" : "") + '" style="--i:' + i + '">' +
+          '<span class="face">' + esc(emojiOf(r.id)) + '</span>' +
+          '<span class="ptag">' + esc(nameOf(r.id)) + '</span></div>';
+      }).join("") + '</div>';
+
+    var headline = n <= 1 ? "You’re the first one in" : n + " in the conference room";
     var startBtn = hasQ
-      ? '<button class="btn primary block" id="start">Start the show ▶</button>'
-      : '<a class="btn block" href="manage.html">Add some questions first →</a>';
+      ? '<button class="btn primary block big-tap" id="start">Start the show ▶</button>'
+      : '<a class="btn primary block big-tap" href="manage.html">Add some questions first →</a>';
+
     stage.innerHTML =
       '<section class="card stack"><span class="tab">Conference room</span>' +
       '<div class="label">Next session · ' + esc(settings.triggerTime) + ' CET</div>' +
       '<div class="countdown" id="cd">' + OG.fmtCountdown(OG.msUntilTrigger(settings.triggerTime)) + '</div>' +
       '<p class="hint">' + (unlocked
-        ? "We’re live for today — jump in whenever you’re both here."
+        ? "We’re live for today — jump in whenever everyone’s here."
         : "Counting down to tonight’s session. You can start early to rehearse, too.") + '</p>' +
-      '<div class="cast-row big">' + avatars + '</div>' +
+      crowd +
+      '<div class="crowd-meta label">' + esc(headline) + '</div>' +
       startBtn +
-      '<div class="spread"><a class="link" href="manage.html">Manage questions &amp; time</a>' +
-      '<a class="link" href="#" id="reface">Change my face</a></div></section>';
+      '<div class="quick-row">' +
+        '<button class="qbtn" id="invite"><span class="qi">🔗</span><span>Invite</span></button>' +
+        '<a class="qbtn" href="manage.html"><span class="qi">📝</span><span>Questions</span></a>' +
+        '<button class="qbtn" id="reface"><span class="qi">🙂</span><span>My face</span></button>' +
+      '</div></section>';
+
     var s = document.getElementById("start"); if (s) s.addEventListener("click", startShow);
-    document.getElementById("reface").addEventListener("click", function (ev) {
-      ev.preventDefault(); localStorage.removeItem("og_emoji"); renderPickEmoji();
-    });
+    document.getElementById("reface").addEventListener("click", function () { renderPickEmoji(); });
+    document.getElementById("invite").addEventListener("click", invite);
+  }
+
+  function invite() {
+    var url = location.href.split("#")[0];
+    var btn = document.getElementById("invite");
+    if (navigator.share) {
+      navigator.share({ title: "Dunder Mifflin Trivia", text: "Join the trivia night →", url: url }).catch(function () {});
+      return;
+    }
+    var done = function () { flashBtn(btn, "✓", "Copied!"); };
+    if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(url).then(done, done);
+    else done();
+  }
+  function flashBtn(btn, icon, label) {
+    if (!btn) return;
+    var i = btn.querySelector(".qi"), t = btn.querySelector("span:last-child");
+    var oi = i.textContent, ot = t.textContent;
+    i.textContent = icon; t.textContent = label; btn.classList.add("ok");
+    setTimeout(function () { i.textContent = oi; t.textContent = ot; btn.classList.remove("ok"); }, 1600);
   }
 
   function renderQuestion() {
@@ -265,10 +328,10 @@
     var answered = localAnsweredAt === room.index || !!a[me];
     var gif = q.gifUrl ? '<div class="gif-frame"><img src="' + esc(q.gifUrl) + '" alt=""></div>' : "";
 
-    var cast = Object.keys(OG.PLAYERS).map(function (id) {
-      var done = !!a[id];
-      return avatarHTML(id, done ? "locked" : "think", done ? "locked in ✓" : "thinking…");
-    }).join("");
+    var cast = castRow(rosterOnline(), false, false, function (r) {
+      var done = !!a[r.id];
+      return castHTML(r.id, done ? "locked" : "think", done ? "locked in ✓" : "thinking…");
+    });
 
     var body = q.type === "mc"
       ? '<div class="choices">' + (q.options || []).map(function (opt, i) {
@@ -282,7 +345,7 @@
       '</span><span id="tcount">00:10</span></div>' +
       '<div class="timerbar"><i id="tbar"></i></div>' + gif +
       '<div class="prompt">' + esc(q.prompt || (q.type === "episode" ? "Name the season & episode." : "")) + '</div>' +
-      body + '<div class="cast-row">' + cast + '</div>';
+      body + cast;
 
     var mine = a[me];
     if (q.type === "mc") {
@@ -312,7 +375,7 @@
     return '<div class="tape"><div class="label">VHS · The Office — dub your guess</div><div class="sel-row">' +
       '<div><label>Season</label><select id="selSeason"' + (answered ? " disabled" : "") + ">" + sOpts + "</select></div>" +
       '<div><label>Episode</label><select id="selEp"' + (answered ? " disabled" : "") + ">" + eOpts + "</select></div>" +
-      "</div></div><button class=\"btn primary block ep-submit\"" + (answered ? " disabled" : "") + ">Lock in answer</button>";
+      "</div></div><button class=\"btn primary block big-tap ep-submit\"" + (answered ? " disabled" : "") + ">Lock in answer</button>";
   }
   function wireEpisodePicker() {
     var selS = document.getElementById("selSeason"), selE = document.getElementById("selEp");
@@ -343,44 +406,51 @@
     if (!q) { stage.innerHTML = '<section class="card">…</section>'; return; }
     var a = (room.answers && room.answers[room.index]) || {};
     var gif = q.gifUrl ? '<div class="gif-frame"><img src="' + esc(q.gifUrl) + '" alt=""></div>' : "";
-    var cast = Object.keys(OG.PLAYERS).map(function (id) {
-      var ans = a[id], ok = ans && ans.correct;
+    var cast = castRow(rosterOnline(), true, true, function (r) {
+      var ans = a[r.id], ok = ans && ans.correct;
       var tag = ans ? ('“' + esc(fmtAnswer(q, ans)) + '” · +' + ans.points) : "missed it · +0";
-      return avatarHTML(id, ans ? (ok ? "correct" : "wrong") : "wrong", tag);
-    }).join("");
+      return castHTML(r.id, ans ? (ok ? "correct" : "wrong") : "wrong", tag);
+    });
     stage.innerHTML =
       '<div class="timecode"><span class="qn">Take ' + (room.index + 1) + " / " + room.order.length +
       '</span><span>REVEAL</span></div>' +
       '<section class="card stack"><div class="label">The answer was</div>' +
-      '<h2>' + esc(correctText(q)) + "</h2>" + gif + '</section>' +
-      '<div class="cast-row big reacting">' + cast + '</div>';
+      '<h2>' + esc(correctText(q)) + "</h2>" + gif + '</section>' + cast;
   }
 
   function renderFinished() {
-    var totals = {};
-    Object.keys(OG.PLAYERS).forEach(function (id) { totals[id] = 0; });
+    // Anyone who scored a point this game, plus everyone still in the room.
+    var totals = {}, names = {};
+    rosterAll().forEach(function (r) { totals[r.id] = 0; });
     var ans = room.answers || {};
     Object.keys(ans).forEach(function (i) {
-      Object.keys(ans[i]).forEach(function (id) { if (totals[id] != null) totals[id] += (ans[i][id].points || 0); });
+      Object.keys(ans[i]).forEach(function (id) {
+        var rec = ans[i][id];
+        if (totals[id] == null) totals[id] = 0;
+        totals[id] += (rec.points || 0);
+        if (rec.name) names[id] = rec.name;     // remember leavers by their last answer
+      });
     });
-    var ids = Object.keys(OG.PLAYERS);
-    var best = Math.max.apply(null, ids.map(function (id) { return totals[id]; }));
+    var ids = Object.keys(totals);
+    var best = ids.length ? Math.max.apply(null, ids.map(function (id) { return totals[id]; })) : 0;
     var winners = ids.filter(function (id) { return totals[id] === best; });
     var tie = winners.length > 1;
-    var banner = tie ? "A dead heat — even Michael couldn’t pick a favorite."
-      : OG.PLAYERS[winners[0]].name + " is World’s Best.";
+    var winName = function (id) { return nameOf(id) !== "Someone" ? nameOf(id) : (names[id] || "Someone"); };
+    var banner = !ids.length ? "Nobody answered — Michael would be heartbroken."
+      : tie ? "A dead heat — even Michael couldn’t pick a favorite."
+      : winName(winners[0]) + " is World’s Best.";
     var rows = ids.sort(function (x, y) { return totals[y] - totals[x]; }).map(function (id) {
       var win = totals[id] === best && !tie;
       return '<div class="score' + (win ? " win" : "") + '">' +
-        '<span class="ava">' + esc(emojiOf(id)) + (win ? " 🏆" : "") + '</span>' +
-        '<span style="font-family:var(--serif);font-size:22px">' + esc(OG.PLAYERS[id].name) + '</span>' +
+        '<span class="emoji">' + esc(emojiOf(id)) + (win ? " 🏆" : "") + '</span>' +
+        '<span class="who">' + esc(winName(id)) + '</span>' +
         '<span class="num">' + totals[id] + '</span></div>';
     }).join("");
     stage.innerHTML =
       '<section class="card stack center"><span class="tab">That’s a wrap</span>' +
       '<div class="banner">' + esc(banner) + '</div>' +
       '<div class="score-grid">' + rows + '</div>' +
-      '<button class="btn primary block" id="again">Run it back ↺</button>' +
+      '<button class="btn primary block big-tap" id="again">Run it back ↺</button>' +
       '<a class="link" href="manage.html">Add new questions</a></section>';
     document.getElementById("again").addEventListener("click", playAgain);
   }

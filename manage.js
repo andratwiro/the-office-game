@@ -12,7 +12,7 @@
   }
   OG.init();
   var db = OG.db();
-  var who = OG.getPlayer() || "host";
+  var who = OG.getName() || "host";
   var type = "mc";
   var pendingGifUrl = "";   // resolved upload URL, if any
 
@@ -183,7 +183,7 @@
       return '<div class="qitem"><div>' +
         '<span class="kind ' + (q.type === "episode" ? "episode" : "") + '">' + (q.type === "episode" ? "Episode" : "Multi") + '</span>' +
         '<div class="qtext">' + esc(q.prompt || "Which episode is this?") + '</div>' +
-        '<div class="meta">' + answer + ' · by ' + esc(OG.PLAYERS[q.createdBy] ? OG.PLAYERS[q.createdBy].name : q.createdBy) + '</div>' +
+        '<div class="meta">' + answer + ' · by ' + esc(q.createdBy || "host") + '</div>' +
         '</div><div style="display:flex;flex-direction:column;gap:8px;align-items:flex-end">' + thumb +
         '<button class="btn ghost" data-edit="' + id + '" style="padding:8px 12px">Edit</button>' +
         '<button class="btn danger" data-del="' + id + '" style="padding:8px 12px">Delete</button></div></div>' +

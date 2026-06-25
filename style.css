@@ -203,14 +203,57 @@ h2 { font-size: clamp(22px, 5.5vw, 30px); }
   letter-spacing: 1px;
   margin: 6px 0 2px;
 }
-.roster { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 18px; }
-.chip {
-  font-family: var(--mono); font-size: 13px;
-  border: 1.5px solid var(--ink); background: var(--paper);
-  padding: 6px 12px; display: inline-flex; gap: 8px; align-items: center;
+/* the conference-room crowd: an organic heap of emoji that holds any headcount.
+   Each face bobs on a staggered delay (--i) so the room looks alive; yours wears
+   the navy ring. Avatar size steps down as the room fills (data-density). */
+.crowd {
+  display: flex; flex-wrap: wrap; justify-content: center; align-items: flex-end;
+  gap: 16px 14px; margin: 4px 0 2px; min-height: 96px;
+  --face: 52px; --tag: 13px;
 }
-.chip .live { width: 8px; height: 8px; border-radius: 50%; background: var(--rule); }
-.chip.online .live { background: var(--green); box-shadow: 0 0 0 3px rgba(46,125,82,.2); }
+.crowd[data-density="cozy"]   { --face: 44px; --tag: 12px; gap: 14px 12px; }
+.crowd[data-density="tight"]  { --face: 36px; --tag: 11px; gap: 11px 10px; }
+.crowd[data-density="packed"] { --face: 30px; --tag: 0;   gap: 9px 8px; }
+.peep { display: flex; flex-direction: column; align-items: center; gap: 5px; max-width: 96px; }
+.peep .face {
+  font-size: var(--face); line-height: 1; display: inline-block;
+  filter: drop-shadow(0 4px 6px rgba(18,39,64,.25));
+  animation: bob 2.8s ease-in-out infinite;
+  animation-delay: calc(var(--i) * -0.32s);
+}
+.peep .ptag {
+  font-family: var(--serif); font-size: var(--tag); color: var(--navy);
+  max-width: 92px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.crowd[data-density="packed"] .ptag { display: none; }
+.peep.me .face {
+  border-radius: 50%;
+  box-shadow: 0 0 0 3px var(--paper-2), 0 0 0 5px var(--navy);
+}
+.peep.me .ptag::after { content: " ·you"; font-family: var(--mono); font-size: 10px; color: var(--ink-soft); }
+.crowd-meta { text-align: center; margin-top: 2px; }
+
+/* quick actions: a 3-up row of fat, thumb-sized buttons under the lobby CTA */
+.quick-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-top: 2px; }
+.qbtn {
+  display: flex; flex-direction: column; align-items: center; gap: 5px;
+  font-family: var(--mono); font-size: 11px; letter-spacing: 1px; text-transform: uppercase;
+  color: var(--ink); text-decoration: none; cursor: pointer;
+  border: 1.5px solid var(--ink); background: var(--paper-2);
+  padding: 12px 6px; box-shadow: 3px 3px 0 var(--ink);
+  transition: transform .06s ease, box-shadow .06s ease, background .12s;
+}
+.qbtn:hover { background: #fff; }
+.qbtn:active { transform: translate(3px, 3px); box-shadow: 0 0 0 var(--ink); }
+.qbtn .qi { font-size: 22px; line-height: 1; }
+.qbtn.ok { background: var(--green); color: #fff; border-color: #1f5a3a; }
+.qbtn:focus-visible { outline: 3px solid var(--highlight); outline-offset: 2px; }
+
+/* big, comfortable name entry */
+.bigfield { font-size: 20px !important; padding: 16px !important; text-align: center; }
+
+/* bigger tap targets for the primary CTAs on phones */
+.big-tap { padding: 17px 18px; font-size: 17px; }
 
 /* ── Question stage ───────────────────────────────────────────────────── */
 .stage { display: flex; flex-direction: column; gap: 18px; }
@@ -276,19 +319,27 @@ select:focus-visible, input:focus-visible, textarea:focus-visible, .choice:focus
   transition: transform .08s ease, background .12s;
 }
 .ava-pick:hover { background: #fff; transform: translateY(-2px); }
+.ava-pick.on { background: var(--navy); border-color: var(--navy-deep); box-shadow: 0 0 0 2px var(--highlight); }
 .ava-pick:focus-visible { outline: 3px solid var(--highlight); outline-offset: 2px; }
 @media (max-width: 460px) { .ava-grid { grid-template-columns: repeat(4, 1fr); } }
 
 /* the cast: each player's emoji + name + a status tag. Used in lobby,
    during questions (think/locked) and on the reveal (correct/wrong). */
-.cast-row { display: flex; justify-content: center; gap: 22px; flex-wrap: wrap; margin-top: 4px; }
-.cast-row.big { gap: 34px; margin: 8px 0 4px; }
-.cast { display: flex; flex-direction: column; align-items: center; gap: 6px; min-width: 86px; }
+.cast-row { display: flex; justify-content: center; gap: 22px; flex-wrap: wrap; margin-top: 4px; --ava: 44px; --min: 86px; }
+.cast-row.big { gap: 34px; margin: 8px 0 4px; --ava: 64px; }
+/* step the in-game cast down as the room fills so a full house still fits */
+.cast-row[data-density="cozy"]   { gap: 16px; --ava: 40px; --min: 72px; }
+.cast-row[data-density="tight"]  { gap: 13px; --ava: 34px; --min: 58px; }
+.cast-row[data-density="packed"] { gap: 10px; --ava: 28px; --min: 48px; }
+.cast-row.big[data-density="cozy"]   { --ava: 52px; }
+.cast-row.big[data-density="tight"]  { --ava: 42px; }
+.cast-row.big[data-density="packed"] { --ava: 34px; }
+.cast { display: flex; flex-direction: column; align-items: center; gap: 6px; min-width: var(--min); }
 .cast .ava {
-  font-size: 44px; line-height: 1; display: inline-block;
+  font-size: var(--ava); line-height: 1; display: inline-block;
   filter: drop-shadow(0 4px 6px rgba(18,39,64,.25));
 }
-.cast-row.big .ava { font-size: 64px; }
+.cast-row[data-density="packed"] .cast-tag { display: none; }
 .cast-name { font-family: var(--serif); font-size: 17px; color: var(--navy); }
 .cast.me .cast-name::after { content: " (you)"; font-family: var(--mono); font-size: 10px; color: var(--ink-soft); }
 .cast-tag {
@@ -328,6 +379,7 @@ select:focus-visible, input:focus-visible, textarea:focus-visible, .choice:focus
   border: 1.5px solid var(--ink); background: var(--paper-2); padding: 16px;
 }
 .score .emoji { font-size: 34px; }
+.score .who { font-family: var(--serif); font-size: 22px; color: var(--navy); min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .score .num { font-family: var(--mono); font-weight: 700; font-size: 30px; color: var(--navy); }
 .score.win { background: var(--highlight); }
 .banner { font-family: var(--serif); font-size: clamp(24px,7vw,40px); color: var(--navy); text-align: center; }
@@ -365,7 +417,7 @@ a.link { color: var(--blue); font-weight: 600; }
 }
 @media (prefers-reduced-motion: reduce) {
   .rec .dot { animation: none; }
-  .cast .ava { animation: none !important; }
+  .cast .ava, .peep .face { animation: none !important; }
   .cast.correct .ava { transform: scale(1.1); }
   .cast.wrong .ava { transform: rotate(8deg); filter: grayscale(.8); }
   .cast.correct .ava::after { content: "✨"; animation: none; opacity: 1; }
