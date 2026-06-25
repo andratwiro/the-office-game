@@ -2,7 +2,22 @@
    Dunder Mifflin Trivia — design system
    Thesis: you're inside the episode. Corporate intranet meets mockumentary.
    ─────────────────────────────────────────────────────────────────────── */
-@import url('https://fonts.googleapis.com/css2?family=Archivo:ital,wght@0,400;0,500;0,600;0,700;1,500&family=Courier+Prime:wght@400;700&family=DM+Serif+Display:ital@0;1&display=swap');
+/* Brand type system — self-hosted in brand/fonts/ so the document renders right
+   offline with zero third-party calls. The Dunder Mifflin logotype is a bold,
+   condensed Impact-style face; we lead the display stack with the system Impact
+   and fall back to self-hosted Anton (the closest free, embeddable match) where
+   Impact is absent (e.g. Android). The logo itself is real vector artwork in
+   brand/dunder-mifflin-*.svg. See brand/README.md. */
+@font-face { font-family: 'Anton'; font-style: normal; font-weight: 400; font-display: swap; src: url('brand/fonts/anton-400.woff2') format('woff2'); }
+@font-face { font-family: 'DM Serif Display'; font-style: normal; font-weight: 400; font-display: swap; src: url('brand/fonts/dm-serif-display-400.woff2') format('woff2'); }
+@font-face { font-family: 'DM Serif Display'; font-style: italic; font-weight: 400; font-display: swap; src: url('brand/fonts/dm-serif-display-400-italic.woff2') format('woff2'); }
+@font-face { font-family: 'Courier Prime'; font-style: normal; font-weight: 400; font-display: swap; src: url('brand/fonts/courier-prime-400.woff2') format('woff2'); }
+@font-face { font-family: 'Courier Prime'; font-style: normal; font-weight: 700; font-display: swap; src: url('brand/fonts/courier-prime-700.woff2') format('woff2'); }
+@font-face { font-family: 'Archivo'; font-style: normal; font-weight: 400; font-display: swap; src: url('brand/fonts/archivo-400.woff2') format('woff2'); }
+@font-face { font-family: 'Archivo'; font-style: normal; font-weight: 500; font-display: swap; src: url('brand/fonts/archivo-500.woff2') format('woff2'); }
+@font-face { font-family: 'Archivo'; font-style: italic; font-weight: 500; font-display: swap; src: url('brand/fonts/archivo-500-italic.woff2') format('woff2'); }
+@font-face { font-family: 'Archivo'; font-style: normal; font-weight: 600; font-display: swap; src: url('brand/fonts/archivo-600.woff2') format('woff2'); }
+@font-face { font-family: 'Archivo'; font-style: normal; font-weight: 700; font-display: swap; src: url('brand/fonts/archivo-700.woff2') format('woff2'); }
 
 :root {
   --paper:    #E4D9BC;   /* manila folder */
@@ -17,6 +32,7 @@
   --highlight:#F2C200;   /* legal pad / sticky note */
   --rule:     #B9AE90;   /* manila hairline */
 
+  --display: Impact, "Anton", "Haettenschweiler", "Arial Narrow Bold", sans-serif; /* the Dunder Mifflin logotype look */
   --serif: "DM Serif Display", Georgia, serif;
   --sans:  "Archivo", system-ui, sans-serif;
   --mono:  "Courier Prime", "Courier New", monospace;
@@ -58,11 +74,17 @@ body {
   border-bottom: 2px solid var(--ink);
 }
 .wordmark {
-  font-family: var(--serif);
-  font-size: clamp(20px, 5.5vw, 30px);
+  font-family: var(--display);
+  font-size: clamp(22px, 6vw, 32px);
   color: var(--navy);
-  line-height: .95;
-  letter-spacing: .2px;
+  line-height: .9;
+  letter-spacing: .4px;
+  text-transform: uppercase;
+}
+.wordmark .logo {        /* real Dunder Mifflin logotype (vector) */
+  display: block;
+  height: clamp(40px, 11vw, 54px);
+  width: auto;
 }
 .wordmark small {
   display: block;
@@ -121,9 +143,9 @@ main { flex: 1; display: flex; flex-direction: column; padding-top: 22px; }
   color: var(--ink-soft);
 }
 
-h1, h2 { font-family: var(--serif); font-weight: 400; line-height: 1.05; margin: 0; }
-h1 { font-size: clamp(26px, 7vw, 40px); }
-h2 { font-size: clamp(20px, 5vw, 26px); }
+h1, h2 { font-family: var(--display); font-weight: 400; line-height: 1; margin: 0; letter-spacing: .3px; text-transform: uppercase; color: var(--navy); }
+h1 { font-size: clamp(30px, 8.5vw, 48px); }
+h2 { font-size: clamp(22px, 5.5vw, 30px); }
 
 /* ── Buttons ──────────────────────────────────────────────────────────── */
 .btn {
