@@ -269,7 +269,6 @@
 
   function renderLobby() {
     var hasQ = Object.keys(questions).length > 0;
-    var unlocked = OG.passedToday(settings.triggerTime);
     var here = rosterOnline();
     var n = here.length;
 
@@ -281,20 +280,14 @@
           '<span class="face">' + esc(emojiOf(r.id)) + '</span></div>';
       }).join("") + '</div>';
 
-    var headline = n <= 1 ? "You’re the first one in" : n + " in the conference room";
     var startBtn = hasQ
       ? '<button class="btn primary block big-tap" id="start">Start the show ▶</button>'
       : '<a class="btn primary block big-tap" href="manage.html">Add some questions first →</a>';
 
     stage.innerHTML =
       '<section class="card stack"><span class="tab">Conference room</span>' +
-      '<div class="label">Next session · ' + esc(settings.triggerTime) + ' CET</div>' +
       '<div class="countdown" id="cd">' + OG.fmtCountdown(OG.msUntilTrigger(settings.triggerTime)) + '</div>' +
-      '<p class="hint">' + (unlocked
-        ? "We’re live for today — jump in whenever everyone’s here."
-        : "Counting down to tonight’s session. You can start early to rehearse, too.") + '</p>' +
       crowd +
-      '<div class="crowd-meta label">' + esc(headline) + '</div>' +
       startBtn +
       '<div class="quick-row">' +
         '<button class="qbtn" id="invite"><span class="qi">🔗</span><span>Invite</span></button>' +
